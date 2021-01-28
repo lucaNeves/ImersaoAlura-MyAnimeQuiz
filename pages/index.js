@@ -1,4 +1,10 @@
+/* eslint-disable no-restricted-globals */
+/* eslint-disable func-names */
+import React from 'react';
 import styled from 'styled-components';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+
 import db from '../db.json';
 import Widget from '../src/components/Widget';
 import Footer from '../src/components/Footer';
@@ -24,16 +30,43 @@ const QuizContainer = styled.div`
   }
 `;
 
+// router manda para a proxima pagina.
 export default function Home() {
+  const router = useRouter();
+  const [name, setName] = React.useState('');
+
   return (
-    <QuizBackground backgroundImage = {db.bg}>
+    <QuizBackground backgroundImage={db.bg}>
+      <Head>
+        <title>{db.title}</title>
+      </Head>
       <QuizContainer>
+        <QuizLogo />
         <Widget>
           <Widget.Header>
-            <h1>Quiz de Animes</h1>
+            <h1>{db.title}</h1>
           </Widget.Header>
           <Widget.Content>
-            <p>Teste seus conhecimentos no mundo dos animes aqui.</p>
+            <p>{db.description}</p>
+            <form onSubmit={function (evento) {
+              evento.preventDefault();
+              router.push(`/quiz?name=${name}`);
+            }}
+            >
+              <input
+                onChange={function (evento) {
+                  // State
+                  setName(evento.target.value);
+                }}
+                placeholder="Digite seu nome"
+              />
+              <button type="submit" disabled={name === ''}>
+                Bora Jogar,
+                {' '}
+                {name}
+                !
+              </button>
+            </form>
           </Widget.Content>
         </Widget>
 
@@ -42,9 +75,9 @@ export default function Home() {
             <h1>Quizes da Galera</h1>
           </Widget.Content>
         </Widget>
-        <Footer></Footer>
+        <Footer />
       </QuizContainer>
-      <GitHubCorner projectUrl = 'https://github.com/lucaNeves'></GitHubCorner>
+      <GitHubCorner projectUrl="https://github.com/lucaNeves" />
     </QuizBackground>
   );
 }

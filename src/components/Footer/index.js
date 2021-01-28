@@ -37,7 +37,7 @@ export default function Footer(props) {
         {' '}
         a
         {' '}
-        <a href="https://www.alura.com.br/" target = '_blank' rel = 'external'>
+        <a href="https://www.alura.com.br/" target="_blank" rel="external">
           <span>Imersão React da Alura</span>
         </a>
       </p>
