@@ -12,6 +12,7 @@ import GitHubCorner from '../src/components/GitHubCorner';
 import QuizLogo from '../src/components/QuizLogo';
 import Button from '../src/components/Button';
 import QuizContainer from '../src/components/QuizContainer';
+import AlternativesForm from '../src/components/AlternativeForm';
 
 function LoadingWidget() {
   return (
@@ -27,13 +28,49 @@ function LoadingWidget() {
   );
 }
 
+function ResultWidget({ resultados }) {
+  return (
+    <Widget>
+      <Widget.Header>
+        <h1>Seus Resultados</h1>
+      </Widget.Header>
+      <Widget.Content>
+        <p>
+          Você acertou
+          {' '}
+          {resultados.filter((acerto) => acerto).length}
+          {' '}
+          pergunta(s)
+        </p>
+        <ul>
+          {resultados.map((result, index) => (
+            <li key={`result__${result}`}>
+              #
+              {index + 1}
+              {' '}
+              Resultado:
+              {' '}
+              {result === true ? 'Acertou' : 'Errou'}
+            </li>
+          ))}
+        </ul>
+      </Widget.Content>
+    </Widget>
+  );
+}
+
 function QuestionWidget({
   questao,
   totalQuestoes,
   questaoIndex,
   onSubmit,
+  addResultado,
 }) {
+  const [alternativaSelecionada, setAlternativaSelecionada] = React.useState(undefined);
+  const [isQuestaoSubmit, setIsQuestaoSubmit] = React.useState(false);
   const questaoId = `questao__${questaoIndex}`;
+  const isCorrect = alternativaSelecionada === questao.answer;
+  const alternativaFoiEscolhida = alternativaSelecionada !== undefined;
   return (
     <Widget>
       <Widget.Header>
@@ -61,58 +98,79 @@ function QuestionWidget({
           {questao.description}
         </p>
 
-        <form onSubmit={(evento) => {
-          evento.preventDefault();
-          onSubmit();
-        }}
+        <AlternativesForm
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            setIsQuestaoSubmit(true);
+            setTimeout(() => {
+              setIsQuestaoSubmit(false);
+              setAlternativaSelecionada(undefined);
+              onSubmit();
+              addResultado(isCorrect);
+            }, 2.5 * 1000);
+          }}
         >
           {questao.alternatives.map((alternativa, alternativaIndex) => {
             const alternativaId = `alternativa__${alternativaIndex}`;
+            const alternativaStatus = isCorrect ? 'SUCCESS' : 'ERROR';
+            const isSelected = alternativaSelecionada === alternativaIndex;
             return (
               <Widget.Topic
                 as="label"
+                key={alternativaId}
                 htmlFor={alternativaId}
+                data-selected={isSelected}
+                data-status={isQuestaoSubmit && alternativaStatus}
               >
                 <input
-                  // style={{
-                  //   display: 'none',
-                  // }}
+                  style={{ display: 'none' }}
                   id={alternativaId}
                   name={questaoId}
+                  onChange={() => setAlternativaSelecionada(alternativaIndex)}
                   type="radio"
                 />
                 {alternativa}
               </Widget.Topic>
             );
           })}
-          <Button type="submit">
+          <Button type="submit" disabled={!alternativaFoiEscolhida}>
             Confirmar
           </Button>
-        </form>
+          {isQuestaoSubmit && isCorrect && <p>Acertou!</p>}
+          {isQuestaoSubmit && !isCorrect && <p>Errou!</p>}
+        </AlternativesForm>
       </Widget.Content>
     </Widget>
   );
 }
 
-const estadoTela = {
+const estadosTela = {
   QUIZ: 'QUIZ',
   CARREGANDO: 'CARREGANDO',
   RESULTADO: 'RESULTADO',
 };
 
 export default function PaginaPerguntas() {
-  const [estadoTelaAtual, setEstadoTela] = React.useState(estadoTela.CARREGANDO);
+  const [estadoTelaAtual, setEstadoTela] = React.useState(estadosTela.CARREGANDO);
+  const [resultados, setResultados] = React.useState([]);
   const [questaoAtual, setQuestaoAtual] = React.useState(0);
   const questaoIndex = questaoAtual;
   const questao = db.questions[questaoAtual];
   const totalQuestoes = db.questions.length;
 
+  function addResultado(resultado) {
+    setResultados([
+      ...resultados,
+      resultado,
+    ]);
+  }
+
   React.useEffect(() => {
     // fetch() ...
     setTimeout(() => {
-      setEstadoTela(estadoTela.QUIZ);
+      setEstadoTela(estadosTela.QUIZ);
     }, 2 * 1000);
-  // nasce === didMount
+    // nasce === didMount
   }, []);
 
   // [React chama de: Efeitos || Effects]
@@ -125,7 +183,7 @@ export default function PaginaPerguntas() {
     if (proximaQuestao < totalQuestoes) {
       setQuestaoAtual(proximaQuestao);
     } else {
-      setEstadoTela(estadoTela.RESULTADO);
+      setEstadoTela(estadosTela.RESULTADO);
     }
   }
 
@@ -136,16 +194,17 @@ export default function PaginaPerguntas() {
       </Head>
       <QuizContainer>
         <QuizLogo />
-        {estadoTelaAtual === estadoTela.QUIZ && (
+        {estadoTelaAtual === estadosTela.QUIZ && (
           <QuestionWidget
             questao={questao}
             totalQuestoes={totalQuestoes}
             questaoIndex={questaoAtual}
             onSubmit={lidarSubmeterQuiz}
+            addResultado={addResultado}
           />
         )}
-        {estadoTelaAtual === estadoTela.CARREGANDO && <LoadingWidget />}
-        {estadoTelaAtual === estadoTela.RESULTADO && <div>acertou</div>}
+        {estadoTelaAtual === estadosTela.CARREGANDO && <LoadingWidget />}
+        {estadoTelaAtual === estadosTela.RESULTADO && <ResultWidget resultados={resultados} />}
         <Footer />
       </QuizContainer>
       <GitHubCorner projectUrl="https://github.com/lucaNeves" />
